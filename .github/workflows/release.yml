@@ -16,36 +16,37 @@ jobs:
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y rpm
     - name: Configure CMake
-      run: cmake -H. -B _build
+      run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
     - name: Create DEB package
-      run: cpack -G DEB --config _build/CPackConfig.cmake
+      working-directory: _build
+      run: cpack -G DEB
     - name: Create RPM package
-      run: cpack -G RPM --config _build/CPackConfig.cmake
+      working-directory: _build
+      run: cpack -G RPM
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: linux-packages
-        path: |
-          *.deb
-          *.rpm
+        path: '*.deb'
 
   build-macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
     - name: Configure CMake
-      run: cmake -H. -B _build
+      run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
     - name: Create DMG package
-      run: cpack -G DragNDrop --config _build/CPackConfig.cmake
+      working-directory: _build
+      run: cpack -G DragNDrop
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: macos-packages
-        path: *.dmg
+        path: '*.dmg'
 
   build-windows:
     runs-on: windows-latest
@@ -56,12 +57,13 @@ jobs:
     - name: Build
       run: cmake --build _build --config Release
     - name: Create ZIP package
-      run: cpack -G ZIP --config _build/CPackConfig.cmake
+      working-directory: _build
+      run: cpack -G ZIP
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: windows-packages
-        path: *.zip
+        path: '*.zip'
 
   release:
     needs: [build-linux, build-macos, build-windows]
@@ -90,7 +92,6 @@ jobs:
       with:
         files: |
           linux-packages/*.deb
-          linux-packages/*.rpm
           macos-packages/*.dmg
           windows-packages/*.zip
       env:
