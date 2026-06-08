@@ -1,5 +1,8 @@
 name: Build and Release Packages
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -8,25 +11,18 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v4
-    
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y rpm
-    
     - name: Configure CMake
-      run: cmake -S . -B_build
-    
+      run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
-    
     - name: Create DEB package
       run: cpack -G DEB --config _build/CPackConfig.cmake
-    
     - name: Create RPM package
       run: cpack -G RPM --config _build/CPackConfig.cmake
-    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -37,19 +33,14 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
-    
     steps:
     - uses: actions/checkout@v4
-    
     - name: Configure CMake
-      run: cmake -S . -B_build
-    
+      run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
-    
     - name: Create DMG package
       run: cpack -G DragNDrop --config _build/CPackConfig.cmake
-    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -58,19 +49,14 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    
     steps:
     - uses: actions/checkout@v4
-    
     - name: Configure CMake
-      run: cmake -S . -B_build
-    
+      run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build --config Release
-    
     - name: Create ZIP package
       run: cpack -G ZIP --config _build/CPackConfig.cmake
-    
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -80,13 +66,27 @@ jobs:
   release:
     needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Download all artifacts
+    - name: Download Linux artifacts
       uses: actions/download-artifact@v4
-    
+      with:
+        name: linux-packages
+        path: linux-packages
+
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-packages
+        path: macos-packages
+
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-packages
+        path: windows-packages
+
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           linux-packages/*.deb
