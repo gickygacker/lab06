@@ -20,17 +20,22 @@ jobs:
       run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
-    - name: Create DEB package
-      run: cpack -G DEB --config _build/CPackConfig.cmake
-    - name: Create RPM package
-      run: cpack -G RPM --config _build/CPackConfig.cmake
+    - name: Create Binary Packages (DEB, RPM)
+      run: |
+        cpack -G DEB --config _build/CPackConfig.cmake
+        cpack -G RPM --config _build/CPackConfig.cmake
+    - name: Create Source Archive (TAR.GZ)
+      run: cpack -G TGZ --config _build/CPackSourceConfig.cmake
     - name: Debug - check files
-      run: ls -la *.deb *.rpm || true
-    - name: Upload artifacts
+      run: ls -la *.deb *.rpm *.tar.gz || true
+    - name: Upload Linux Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: linux-packages
-        path: "*.deb"
+        path: |
+          "*.deb"
+          "*.rpm"
+          "*.tar.gz"
 
   build-macos:
     runs-on: macos-latest
@@ -40,11 +45,11 @@ jobs:
       run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build
-    - name: Create DMG package
+    - name: Create Binary Package (DMG)
       run: cpack -G DragNDrop --config _build/CPackConfig.cmake
     - name: Debug - check files
       run: ls -la *.dmg || true
-    - name: Upload artifacts
+    - name: Upload macOS Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: macos-packages
@@ -58,15 +63,19 @@ jobs:
       run: cmake -S . -B _build
     - name: Build
       run: cmake --build _build --config Release
-    - name: Create ZIP package
-      run: cpack -G ZIP --config _build/CPackConfig.cmake
+    - name: Create Binary Package (MSI) and Archive (ZIP)
+      run: |
+        cpack -G WIX --config _build/CPackConfig.cmake
+        cpack -G ZIP --config _build/CPackSourceConfig.cmake
     - name: Debug - check files
-      run: dir *.zip
-    - name: Upload artifacts
+      run: dir *.msi *.zip || true
+    - name: Upload Windows Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: windows-packages
-        path: "*.zip"
+        path: |
+          "*.msi"
+          "*.zip"
 
   release:
     needs: [build-linux, build-macos, build-windows]
@@ -101,7 +110,10 @@ jobs:
       with:
         files: |
           linux-packages/*.deb
+          linux-packages/*.rpm
+          linux-packages/*.tar.gz
           macos-packages/*.dmg
+          windows-packages/*.msi
           windows-packages/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
