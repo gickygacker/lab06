@@ -1,0 +1,97 @@
+name: Build and Release Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y rpm
+    
+    - name: Configure CMake
+      run: cmake -H. -B_build
+    
+    - name: Build
+      run: cmake --build _build
+    
+    - name: Create DEB package
+      run: cpack -G DEB --config _build/CPackConfig.cmake
+    
+    - name: Create RPM package
+      run: cpack -G RPM --config _build/CPackConfig.cmake
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-packages
+        path: |
+          _build/*.deb
+          _build/*.rpm
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure CMake
+      run: cmake -H. -B_build
+    
+    - name: Build
+      run: cmake --build _build
+    
+    - name: Create DMG package
+      run: cpack -G DragNDrop --config _build/CPackConfig.cmake
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-packages
+        path: _build/*.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure CMake
+      run: cmake -H. -B_build
+    
+    - name: Build
+      run: cmake --build _build --config Release
+    
+    - name: Create ZIP package
+      run: cpack -G ZIP --config _build/CPackConfig.cmake
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-packages
+        path: _build/*.zip
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          linux-packages/*.deb
+          linux-packages/*.rpm
+          macos-packages/*.dmg
+          windows-packages/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
