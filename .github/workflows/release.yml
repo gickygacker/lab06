@@ -28,8 +28,8 @@ jobs:
       with:
         name: linux-packages
         path: |
-          _build/*.deb
-          _build/*.rpm
+          *.deb
+          *.rpm
 
   build-macos:
     runs-on: macos-latest
@@ -45,7 +45,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: macos-packages
-        path: _build/*.dmg
+        path: *.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -61,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-packages
-        path: _build/*.zip
+        path: *.zip
 
   release:
     needs: [build-linux, build-macos, build-windows]
